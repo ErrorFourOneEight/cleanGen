@@ -41,29 +41,36 @@ int main() {
         std::string parentStr = path.parent_path().string();
 
         // --- 1. Update the ID3 title tag ---
-        TagLib::FileRef f(path.c_str());
+        // Scoped block: FileRef is destroyed here, closing the file handle
+        // before the rename. This is necessary on Windows, which won't allow
+        // renaming a file that is still open.
+        bool tagFailed = false;
+        {
+            TagLib::FileRef f(path.c_str());
 
-        if (f.isNull() || !f.tag()) {
-            std::cerr << "  [SKIP]  Could not read tags: " << filename << std::endl;
-            ++skipped;
-            continue;
-        }
-
-        TagLib::Tag* tag = f.tag();
-        std::string currentTitle = tag->title().to8Bit(true);
-
-        // Only prefix if not already prefixed
-        if (currentTitle.rfind(PREFIX, 0) != 0) {
-            std::string newTitle = PREFIX + currentTitle;
-            tag->setTitle(TagLib::String(newTitle, TagLib::String::UTF8));
-            if (!f.save()) {
-                std::cerr << "  [FAIL]  Could not save tags: " << filename << std::endl;
-                ++failed;
+            if (f.isNull() || !f.tag()) {
+                std::cerr << "  [SKIP]  Could not read tags: " << filename << std::endl;
+                ++skipped;
                 continue;
             }
-        } else {
-            std::cout << "  [SKIP]  Tag already prefixed: " << filename << std::endl;
-        }
+
+            TagLib::Tag* tag = f.tag();
+            std::string currentTitle = tag->title().to8Bit(true);
+
+            // Only prefix if not already prefixed
+            if (currentTitle.rfind(PREFIX, 0) != 0) {
+                std::string newTitle = PREFIX + currentTitle;
+                tag->setTitle(TagLib::String(newTitle, TagLib::String::UTF8));
+                if (!f.save()) {
+                    std::cerr << "  [FAIL]  Could not save tags: " << filename << std::endl;
+                    tagFailed = true;
+                }
+            } else {
+                std::cout << "  [SKIP]  Tag already prefixed: " << filename << std::endl;
+            }
+        } // <-- FileRef destroyed here, file handle released
+
+        if (tagFailed) { ++failed; continue; }
 
         // --- 2. Rename the file ---
         if (filename.rfind(PREFIX, 0) != 0) {
