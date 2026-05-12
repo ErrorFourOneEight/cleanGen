@@ -34,7 +34,7 @@ Then build TagLib:
 The move the clean_mp3.ccp file into the build-win directory and run
 
     x86_64-w64-mingw32-g++ -std=c++17 -o clean_mp3.exe clean_mp3.cpp \
-  -     DTAGLIB_STATIC \
+        DTAGLIB_STATIC \
         -I$HOME/taglib-win/include \
         -L$HOME/taglib-win/lib \
         -L/usr/x86_64-w64-mingw32/lib \
