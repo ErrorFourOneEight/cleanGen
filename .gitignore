@@ -1,0 +1,4 @@
+# Ignore the crosscompilation directory
+taglib/ 
+
+
